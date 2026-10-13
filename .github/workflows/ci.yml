@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.so }}
+
+    # bash nos tres sistemas: no Windows o shell padrao e o PowerShell, e ele
+    # desmonta "-Dexec.args=..." em dois argumentos antes de o Maven ver.
+    defaults:
+      run:
+        shell: bash
+
+    strategy:
+      fail-fast: false
+      matrix:
+        so: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Testes
+        run: mvn -B -ntp verify
+
+      - name: todo mundo fica sabendo, e nenhuma estrategia bate o limite
+        run: mvn -B -ntp -q exec:java -Dexec.args="correcao"
+
+      - name: rodadas ate todo mundo saber
+        run: mvn -B -ntp -q exec:java -Dexec.args="rodadas"
+
+      - name: onde cada estrategia gasta o tempo
+        run: mvn -B -ntp -q exec:java -Dexec.args="cauda"
+
+      - name: quantas mensagens custa
+        run: mvn -B -ntp -q exec:java -Dexec.args="mensagens"
+
+      - name: a regra de parada e quem fica de fora
+        run: mvn -B -ntp -q exec:java -Dexec.args="parada"
+
+      - name: Relatorios de teste
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports-${{ matrix.so }}
+          path: target/surefire-reports
